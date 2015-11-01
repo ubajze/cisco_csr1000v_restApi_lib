@@ -3,6 +3,8 @@ import json
 from base64 import b64encode
 from lib.rest_api_paths import *
 
+from lib.global_object import *
+
 
 class ConnectionClass(object):
 

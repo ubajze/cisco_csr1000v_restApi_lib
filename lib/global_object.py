@@ -28,12 +28,14 @@ class GlobalClass(object):
         if banner_type:
             banner_type_options = ['motd', 'login', 'exec']
             if banner_type not in banner_type_options:
-                print "Banner type not recognized."
-                raise Exception
+                error_message = custom_error_codes['1000']
+                return {'error_code': '1000',
+                        'error_message': error_message}
         path = global_banner_path
         headers = self.authenticationClass.headers
         response, content = self.connectionClass.rest_api_call(path=path,
                                                                headers=headers)
+        error_response = response_status(response, content)
         if response['status'] == '200':
             try:
                 banner_data = json.loads(content)
@@ -46,8 +48,8 @@ class GlobalClass(object):
                                'login': banner_data['login'],
                                'exec': banner_data['exec']}
             return return_data
-        elif response['status'] == '401':
-            return {'error_message': error.error_codes['401']}
+        elif error_response:
+            return error_response
         else:
             raise Exception
 
@@ -63,8 +65,9 @@ class GlobalClass(object):
 
         banner_type_options = ['motd', 'login', 'exec']
         if banner_type not in banner_type_options:
-            print "Banner type not recognized."
-            raise Exception
+            error_message = custom_error_codes['1000']
+            return {'error_code': '1000',
+                    'error_message': error_message}
         path = global_banner_path
         headers = self.authenticationClass.headers
         headers['Content-Type'] = 'application/json'
@@ -75,9 +78,12 @@ class GlobalClass(object):
                                                                method=method,
                                                                headers=headers,
                                                                body=body)
-        if response['status'] == '401':
-            return {'error_message': error.error_codes['401']}
-        elif response['status'] != '204':
+        error_response = response_status(response, content)
+        if response['status'] == '204':
+            pass
+        elif error_response:
+            return error_response
+        else:
             raise Exception
 
     def get_hostname(self):
@@ -178,19 +184,19 @@ class GlobalClass(object):
         elif response['status'] != '204':
             raise Exception
 
-    def get_local_users(self, user=None):
+    def get_local_users(self, username=None):
 
         '''
         get_local_users:
         @args:
-        -user:  The username, default: None
+        -username:  The username, default: None
         @returns:
         -local_user dictionary:     Keys: ...
         '''
 
         path = global_local_users_path
-        if user:
-            path = path + '/' + str(user)
+        if username:
+            path = path + '/' + str(username)
         headers = self.authenticationClass.headers
         response, content = self.connectionClass.rest_api_call(path=path,
                                                                headers=headers)
@@ -200,10 +206,15 @@ class GlobalClass(object):
             except:
                 raise Exception
             users = []
-            for user in local_users_data['users']:
-                users.append({'username': user['username'],
-                              'privilege': user['privilege'],
-                              'pw-type': user['pw-type']})
+            if username:
+                users.append({'username': local_users_data['username'],
+                              'privilege': local_users_data['privilege'],
+                              'pw-type': local_users_data['pw-type']})
+            else:
+                for user in local_users_data['users']:
+                    users.append({'username': user['username'],
+                                  'privilege': user['privilege'],
+                                  'pw-type': user['pw-type']})
             return_data = {'users': users}
             return return_data
         elif response['status'] == '401':
@@ -221,6 +232,7 @@ class GlobalClass(object):
         -pw_type:   The password type, options: 0, 7, Default: None
         -privilege: The privilege level of the user, options: 0-15, default: 15
         @returns:
+        -errors in case of error
         '''
 
         path = global_local_users_path

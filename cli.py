@@ -15,6 +15,7 @@ api_objects.append(GlobalClass)
 
 deviceObjects = []
 
+
 class CliClass(object):
 
     def __init__(self, dataClass):
@@ -132,8 +133,11 @@ class DataClass(object):
     def connect(self):
         for host in self.hosts:
             global deviceObjects
-            connectionClass = ConnectionClass(host=host['host'], port=host['port'], protocol=host['protocol'])
-            authenticationClass = AuthenticationClass(username=host['username'], password=host['password'])
+            connectionClass = ConnectionClass(host=host['host'],
+                                              port=host['port'],
+                                              protocol=host['protocol'])
+            authenticationClass = AuthenticationClass(username=host['username'],
+                                                      password=host['password'])
             authenticationClass.get_authentication_token(connectionClass)
             deviceObjects.append([connectionClass, authenticationClass])
 
