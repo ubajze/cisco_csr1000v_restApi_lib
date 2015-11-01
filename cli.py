@@ -60,22 +60,6 @@ class CliClass(object):
                                     print self._format_docstring(method_docstring)
                     if not method_find:
                         print "Method not found."
-                    # print "This is help for you"
-                    # print ""
-                    # for class_object in all_methods.keys():
-                    #     print "===="
-                    #     print class_object.__name__
-                    #     print "===="
-                    #     if class_object.__doc__:
-                    #         print self._format_docstring(class_object.__doc__)
-                    #     print ""
-                    #     print "----"
-                    #     for method in all_methods[class_object]:
-                    #         method_docstring = eval(class_object.__name__ + '.' + method).__doc__
-                    #         if method_docstring:
-                    #             print self._format_docstring(method_docstring)
-                    #         print "--"
-                    #     print ""
                 else:
                     print "Wrong arguments"
             else:

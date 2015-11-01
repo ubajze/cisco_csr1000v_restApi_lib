@@ -1,6 +1,6 @@
 import json
 from rest_api_paths import *
-
+from errors import *
 
 class GlobalClass(object):
 
@@ -47,7 +47,7 @@ class GlobalClass(object):
                                'exec': banner_data['exec']}
             return return_data
         elif response['status'] == '401':
-            print "Authentication failed"
+            return {'error_message': error.error_codes['401']}
         else:
             raise Exception
 
@@ -76,7 +76,7 @@ class GlobalClass(object):
                                                                headers=headers,
                                                                body=body)
         if response['status'] == '401':
-            print "Authentication failed"
+            return {'error_message': error.error_codes['401']}
         elif response['status'] != '204':
             raise Exception
 
@@ -101,7 +101,7 @@ class GlobalClass(object):
             return_data = {'hostname': hostname_data['host-name']}
             return return_data
         elif response['status'] == '401':
-            print "Authentication failed"
+            return {'error_message': error.error_codes['401']}
         else:
             raise Exception
 
@@ -125,7 +125,7 @@ class GlobalClass(object):
                                                                headers=headers,
                                                                body=body)
         if response['status'] == '401':
-            print "Authentication failed"
+            return {'error_message': error.error_codes['401']}
         elif response['status'] != '204':
             raise Exception
 
@@ -150,7 +150,7 @@ class GlobalClass(object):
             return_data = {'domain_name': domain_name_data['domain-name']}
             return return_data
         elif response['status'] == '401':
-            print "Authentication failed"
+            return {'error_message': error.error_codes['401']}
         else:
             raise Exception
 
@@ -174,7 +174,7 @@ class GlobalClass(object):
                                                                headers=headers,
                                                                body=body)
         if response['status'] == '401':
-            print "Authentication failed"
+            return {'error_message': error.error_codes['401']}
         elif response['status'] != '204':
             raise Exception
 
@@ -191,26 +191,23 @@ class GlobalClass(object):
         path = global_local_users_path
         if user:
             path = path + '/' + str(user)
-        print path
-        print user
         headers = self.authenticationClass.headers
         response, content = self.connectionClass.rest_api_call(path=path,
                                                                headers=headers)
-
-
-# "users": [{"username": "uros", "privilege": 15, "kind": "object#local-user", "pw-type": 0}]}
-        print response
-        print content
         if response['status'] == '200':
             try:
                 local_users_data = json.loads(content)
             except:
                 raise Exception
-            # print local_users_data['users']
-            return_data = {'users': local_users_data['users']}
+            users = []
+            for user in local_users_data['users']:
+                users.append({'username': user['username'],
+                              'privilege': user['privilege'],
+                              'pw-type': user['pw-type']})
+            return_data = {'users': users}
             return return_data
         elif response['status'] == '401':
-            print "Authentication failed"
+            return {'error_message': error.error_codes['401']}
         else:
             raise Exception
 
@@ -268,8 +265,15 @@ class GlobalClass(object):
                                                                method=method,
                                                                headers=headers,
                                                                body=body)
-        if response['status'] == '401':
-            print "Authentication failed"
+        content = json.loads(content)
+        if response['status'] == '201':
+            return None
+        elif response['status'] == '401':
+            return {'error_message': error.error_codes['401']}
+        elif response['status'] == '404':
+            return {'error_code': str(content['error-code']),
+                    'error_message': content['error-message'],
+                    'error_message_details': content['detail']}
         elif response['status'] != '201':
             raise Exception
 
