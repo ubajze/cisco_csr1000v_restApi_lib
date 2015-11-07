@@ -80,7 +80,7 @@ class GlobalClass(object):
                                                                body=body)
         error_response = response_status(response, content)
         if response['status'] == '204':
-            pass
+            return
         elif error_response:
             return error_response
         else:
@@ -99,6 +99,7 @@ class GlobalClass(object):
         headers = self.authenticationClass.headers
         response, content = self.connectionClass.rest_api_call(path=path,
                                                                headers=headers)
+        error_response = response_status(response, content)
         if response['status'] == '200':
             try:
                 hostname_data = json.loads(content)
@@ -106,8 +107,8 @@ class GlobalClass(object):
                 raise Exception
             return_data = {'hostname': hostname_data['host-name']}
             return return_data
-        elif response['status'] == '401':
-            return {'error_message': error.error_codes['401']}
+        elif error_response:
+            return error_response
         else:
             raise Exception
 
@@ -130,9 +131,19 @@ class GlobalClass(object):
                                                                method=method,
                                                                headers=headers,
                                                                body=body)
-        if response['status'] == '401':
-            return {'error_message': error.error_codes['401']}
-        elif response['status'] != '204':
+        error_response = response_status(response, content)
+        if response['status'] == '200':
+            try:
+                hostname_data = json.loads(content)
+            except:
+                raise Exception
+            return_data = {'hostname': hostname_data['host-name']}
+            return return_data
+        elif response['status'] == '204':
+            return
+        elif error_response:
+            return error_response
+        else:
             raise Exception
 
     def get_domain_name(self):
@@ -148,6 +159,7 @@ class GlobalClass(object):
         headers = self.authenticationClass.headers
         response, content = self.connectionClass.rest_api_call(path=path,
                                                                headers=headers)
+        error_response = response_status(response, content)
         if response['status'] == '200':
             try:
                 domain_name_data = json.loads(content)
@@ -155,8 +167,8 @@ class GlobalClass(object):
                 raise Exception
             return_data = {'domain_name': domain_name_data['domain-name']}
             return return_data
-        elif response['status'] == '401':
-            return {'error_message': error.error_codes['401']}
+        elif error_response:
+            return error_response
         else:
             raise Exception
 
@@ -179,9 +191,12 @@ class GlobalClass(object):
                                                                method=method,
                                                                headers=headers,
                                                                body=body)
-        if response['status'] == '401':
-            return {'error_message': error.error_codes['401']}
-        elif response['status'] != '204':
+        error_response = response_status(response, content)
+        if response['status'] == '204':
+            return
+        elif error_response:
+            return error_response
+        else:
             raise Exception
 
     def get_local_users(self, username=None):
@@ -200,6 +215,7 @@ class GlobalClass(object):
         headers = self.authenticationClass.headers
         response, content = self.connectionClass.rest_api_call(path=path,
                                                                headers=headers)
+        error_response = response_status(response, content)
         if response['status'] == '200':
             try:
                 local_users_data = json.loads(content)
@@ -217,8 +233,8 @@ class GlobalClass(object):
                                   'pw-type': user['pw-type']})
             return_data = {'users': users}
             return return_data
-        elif response['status'] == '401':
-            return {'error_message': error.error_codes['401']}
+        elif error_response:
+            return error_response
         else:
             raise Exception
 
@@ -249,27 +265,32 @@ class GlobalClass(object):
                 int(pw_type)
                 is_integer = True
             except:
-                print "pw_type must be an integer"
-                is_integer = False
-                raise
+                return {'error_code': '1001',
+                        'error_message': custom_error_codes['1001'],
+                        'error_message_details': 'The pw_type was ' + str(pw_type)}
             if is_integer:
                 if int(pw_type) in [0, 7]:
-                    local_users_dict['pw-type'] = str(pw_type)
+                    local_users_dict['pw-type'] = int(pw_type)
+                else:
+                    return {'error_code': '1002',
+                            'error_message': custom_error_codes['1002'],
+                            'error_message_details': 'The pw_type was ' + str(pw_type)}
 
         if privilege:
             try:
                 int(privilege)
                 is_integer = True
             except:
-                print "privilege must be an integer"
-                is_integer = False
-                raise
+                return {'error_code': '1003',
+                        'error_message': custom_error_codes['1003'],
+                        'error_message_details': 'The privilege was ' + str(privilege)}
             if is_integer:
                 if int(privilege) in range(0, 16):
                     local_users_dict['privilege'] = int(privilege)
                 else:
-                    print "privilege not in expected range 0-15"
-                    raise
+                    return {'error_code': '1004',
+                            'error_message': custom_error_codes['1004'],
+                            'error_message_details': 'The privilege was ' + str(privilege)}
 
         body = json.dumps(local_users_dict)
 
@@ -277,19 +298,112 @@ class GlobalClass(object):
                                                                method=method,
                                                                headers=headers,
                                                                body=body)
-        content = json.loads(content)
+        error_response = response_status(response, content)
         if response['status'] == '201':
-            return None
-        elif response['status'] == '401':
-            return {'error_message': error.error_codes['401']}
-        elif response['status'] == '404':
-            return {'error_code': str(content['error-code']),
-                    'error_message': content['error-message'],
-                    'error_message_details': content['detail']}
-        elif response['status'] != '201':
+            try:
+                location = response['location']
+                return {'location': location}
+            except:
+                return
+        elif error_response:
+            return error_response
+        else:
             raise Exception
 
+    def put_local_users(self, username, password=None, pw_type=None, privilege=15):
 
+        '''
+        put_local_users:
+        @args:
+        -username:  The username
+        -password:  The password string, Default: None
+        -pw_type:   The password type, options: 0, 7, Default: None
+        -privilege: The privilege level of the user, options: 0-15, default: 15
+        @returns:
+        '''
+
+        path = global_local_users_path
+        if username:
+            path = path + '/' + str(username)
+        headers = self.authenticationClass.headers
+        headers['Content-Type'] = 'application/json'
+        method = 'PUT'
+        local_users_dict = {'username': username}
+        local_users_dict = {}
+
+        if password:
+            local_users_dict['password'] = password
+
+        if pw_type:
+            try:
+                int(pw_type)
+                is_integer = True
+            except:
+                return {'error_code': '1001',
+                        'error_message': custom_error_codes['1001'],
+                        'error_message_details': 'The pw_type was ' + str(pw_type)}
+            if is_integer:
+                if int(pw_type) in [0, 7]:
+                    local_users_dict['pw-type'] = int(pw_type)
+                else:
+                    return {'error_code': '1002',
+                            'error_message': custom_error_codes['1002'],
+                            'error_message_details': 'The pw_type was ' + str(pw_type)}
+
+        if privilege:
+            try:
+                int(privilege)
+                is_integer = True
+            except:
+                return {'error_code': '1003',
+                        'error_message': custom_error_codes['1003'],
+                        'error_message_details': 'The privilege was ' + str(privilege)}
+            if is_integer:
+                if int(privilege) in range(0, 16):
+                    local_users_dict['privilege'] = int(privilege)
+                else:
+                    return {'error_code': '1004',
+                            'error_message': custom_error_codes['1004'],
+                            'error_message_details': 'The privilege was ' + str(privilege)}
+
+        body = json.dumps(local_users_dict)
+
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               method=method,
+                                                               headers=headers,
+                                                               body=body)
+        error_response = response_status(response, content)
+        if response['status'] == '204':
+            return
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
+
+    def delete_local_users(self, username):
+
+        '''
+        delete_local_users:
+        @args:
+        -username:  The username
+        @returns:
+        '''
+
+        path = global_local_users_path
+        if username:
+            path = path + '/' + str(username)
+        headers = self.authenticationClass.headers
+        method = 'DELETE'
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               method=method,
+                                                               headers=headers)
+        error_response = response_status(response, content)
+        if response['status'] == '204':
+            return
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
 
 
 # Local users

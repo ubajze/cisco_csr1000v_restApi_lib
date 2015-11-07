@@ -1,5 +1,11 @@
+import json
+
 custom_error_codes = {
     '1000': 'Banner type not recognized.',
+    '1001': 'pw_type must be an integer',
+    '1002': 'pw_type not 0 or 7',
+    '1003': 'Privilege must be an integer.',
+    '1004': 'Privilege not in expected range 0-15.',
 }
 
 def response_status(response, content):
@@ -13,16 +19,21 @@ def response_status(response, content):
         error_code = ''
         error_message = ''
         detail = ''
-        if 'error_code' in content.keys():
-            error_code = content['error_code']
-        else:
-            error_code = str(response['status'])
-        if 'error_message' in content.keys():
-            error_message = content['error-message']
-        if 'detail' in content.keys():
-            detail = content['detail']
-        return {'error_code': error_code,
-                'error_message': error_message,
-                'detail': detail}
+        try:
+            content_dict = json.loads(content)
+        except:
+            content_dict = None
+        if content_dict:
+            if 'error-code' in content_dict.keys():
+                error_code = content_dict['error-code']
+            else:
+                error_code = str(response['status'])
+            if 'error-message' in content_dict.keys():
+                error_message = content_dict['error-message']
+            if 'detail' in content_dict.keys():
+                detail = content_dict['detail']
+            return {'error_code': error_code,
+                    'error_message': error_message,
+                    'detail': detail}
     else:
         return None
