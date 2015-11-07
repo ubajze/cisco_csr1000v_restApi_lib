@@ -35,5 +35,10 @@ def response_status(response, content):
             return {'error_code': error_code,
                     'error_message': error_message,
                     'detail': detail}
+        else:
+            error_code = str(response['status'])
+            return {'error_code': error_code,
+                    'error_message': error_message,
+                    'detail': detail}
     else:
         return None

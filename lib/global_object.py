@@ -310,13 +310,13 @@ class GlobalClass(object):
         else:
             raise Exception
 
-    def put_local_users(self, username, password=None, pw_type=None, privilege=15):
+    def put_local_users(self, username, password, pw_type=None, privilege=15):
 
         '''
         put_local_users:
         @args:
         -username:  The username
-        -password:  The password string, Default: None
+        -password:  The password string
         -pw_type:   The password type, options: 0, 7, Default: None
         -privilege: The privilege level of the user, options: 0-15, default: 15
         @returns:
