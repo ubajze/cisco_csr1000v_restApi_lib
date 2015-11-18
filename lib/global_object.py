@@ -1,6 +1,7 @@
 import json
 from rest_api_paths import *
 from errors import *
+import helper
 
 class GlobalClass(object):
 
@@ -206,7 +207,7 @@ class GlobalClass(object):
         @args:
         -username:  The username, default: None
         @returns:
-        -local_user dictionary:     Keys: ...
+        -local_user dictionary:     Keys: username, privilege, pw_type
         '''
 
         path = global_local_users_path
@@ -225,12 +226,12 @@ class GlobalClass(object):
             if username:
                 users.append({'username': local_users_data['username'],
                               'privilege': local_users_data['privilege'],
-                              'pw-type': local_users_data['pw-type']})
+                              'pw_type': local_users_data['pw-type']})
             else:
                 for user in local_users_data['users']:
                     users.append({'username': user['username'],
                                   'privilege': user['privilege'],
-                                  'pw-type': user['pw-type']})
+                                  'pw_type': user['pw-type']})
             return_data = {'users': users}
             return return_data
         elif error_response:
@@ -248,7 +249,7 @@ class GlobalClass(object):
         -pw_type:   The password type, options: 0, 7, Default: None
         -privilege: The privilege level of the user, options: 0-15, default: 15
         @returns:
-        -errors in case of error
+        -location: URL link to user
         '''
 
         path = global_local_users_path
@@ -390,8 +391,7 @@ class GlobalClass(object):
         '''
 
         path = global_local_users_path
-        if username:
-            path = path + '/' + str(username)
+        path = path + '/' + str(username)
         headers = self.authenticationClass.headers
         method = 'DELETE'
         response, content = self.connectionClass.rest_api_call(path=path,
@@ -405,13 +405,327 @@ class GlobalClass(object):
         else:
             raise Exception
 
+    def get_logging(self, host=None, port='514', transport='udp'):
 
-# Local users
+        '''
+        get_logging:
+        @args:
+        -host:  The host IP (must be in IP format)
+        -port:  The port number, Default: 514
+        -transport:  The transport protocol, Default: udp
+        @returns:
+        -logging_servers dictionary:     Keys: ip_address, port, transport
+        '''
 
-# /api/v1/global/local-users  Y Y N N
-# /api/v1/global/local-users/{username} Y Y Y Y
+        path = global_logging_path
 
+        if host:
+            if helper.check_ip_address(host):
+                path = path + '/' + str(host) + '_' + \
+                       transport + '_' + port
+            else:
+                return {'error_code': '1005',
+                        'error_message': custom_error_codes['1005'],
+                        'error_message_details': 'The host was ' + str(host)}
 
+        headers = self.authenticationClass.headers
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               headers=headers)
+
+        error_response = response_status(response, content)
+        if response['status'] == '200':
+            try:
+                logging_data = json.loads(content)
+            except:
+                raise Exception
+            logging_hosts = []
+            if host:
+                logging_hosts.append({'ip_address': logging_data['ip-address'],
+                                      'transport': logging_data['transport'],
+                                      'port': logging_data['port']})
+            else:
+                for log_host in logging_data['items']:
+                    logging_hosts.append({'ip_address': log_host['ip-address'],
+                                          'transport': log_host['transport'],
+                                          'port': log_host['port']})
+            return_data = {'logging_hosts': logging_hosts}
+            return return_data
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
+
+    def post_logging(self, host, port=None, transport=None):
+
+        '''
+        post_logging:
+        @args:
+        -host:  The host IP (must be in IP format)
+        -port:  The port number, Default: None
+        -transport:  The transport protocol, Default: None
+        @returns:
+        -location: URL link to logging host
+        '''
+
+        path = global_logging_path
+        headers = self.authenticationClass.headers
+        headers['Content-Type'] = 'application/json'
+        method = 'POST'
+
+        if helper.check_ip_address(host):
+            logging_dict = {'ip-address': host}
+        else:
+            return {'error_code': '1005',
+                    'error_message': custom_error_codes['1005'],
+                    'error_message_details': 'The host was ' + str(host)}
+
+        if port:
+            logging_dict['port'] = int(port)
+
+        if transport:
+            logging_dict['transport'] = transport
+
+        body = json.dumps(logging_dict)
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               method=method,
+                                                               headers=headers,
+                                                               body=body)
+        error_response = response_status(response, content)
+        if response['status'] == '201':
+            try:
+                location = response['location']
+                return {'location': location}
+            except:
+                return
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
+
+    def delete_logging(self, host, port='514', transport='udp'):
+
+        '''
+        delete_logging:
+        @args:
+        -host:  The host IP (must be in IP format)
+        -port:  The port number, Default: 514
+        -transport:  The transport protocol, Default: udp
+        @returns:
+        '''
+
+        path = global_logging_path
+        path = path + '/' + str(host) + '_' + str(transport) + '_' + str(port)
+        headers = self.authenticationClass.headers
+        method = 'DELETE'
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               method=method,
+                                                               headers=headers)
+        error_response = response_status(response, content)
+        if response['status'] == '204':
+            return
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
+
+    def get_running_config(self):
+
+        '''
+        get_running_config:
+        @args:
+        @returns:
+        -running_config dictionary:     Keys: running_config
+        '''
+
+        path = global_running_config_path
+
+        headers = self.authenticationClass.headers
+        headers['Accept'] = 'text/plain'
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               headers=headers)
+
+        error_response = response_status(response, content)
+        if response['status'] == '200':
+            return_data = {'running_config': content}
+            return return_data
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
+
+    def put_running_config(self, running_config=None):
+
+        '''
+        put_running_config:
+        @args:
+        -running_config: running config string
+        @returns:
+        '''
+
+        path = global_running_config_path
+
+        headers = self.authenticationClass.headers
+        headers['Content-Type'] = 'text/plain'
+        headers['Accept'] = 'text/plain'
+        method = 'PUT'
+        body = running_config
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               method=method,
+                                                               headers=headers,
+                                                               body=body)
+
+        error_response = response_status(response, content)
+        if response['status'] == '204':
+            return
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
+
+    def post_snmp(self, host, community='public'):
+
+        '''
+        post_snmp:
+        @args:
+        -host:  The host IP (must be in IP format)
+        -community:  The SNMP community, Default: public
+        @returns:
+        -location: URL link to logging host
+        '''
+
+        path = global_snmp_path
+        headers = self.authenticationClass.headers
+        headers['Content-Type'] = 'application/json'
+        method = 'POST'
+
+        if helper.check_ip_address(host):
+            snmp_dict = {'ip-address': host}
+        else:
+            return {'error_code': '1005',
+                    'error_message': custom_error_codes['1005'],
+                    'error_message_details': 'The host was ' + str(host)}
+
+        snmp_dict['community-string'] = community
+
+        body = json.dumps(snmp_dict)
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               method=method,
+                                                               headers=headers,
+                                                               body=body)
+        error_response = response_status(response, content)
+        if response['status'] == '201':
+            try:
+                location = response['location']
+                return {'location': location}
+            except:
+                return
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
+
+    def get_snmp(self, host=None, community='public'):
+
+        '''
+        get_snmp:
+        @args:
+        -host:  The host IP (must be in IP format)
+        -community:  The SNMP community, Default: public
+        @returns:
+        -snmp_servers dictionary:     Keys: ip_address, community
+        '''
+
+        path = global_snmp_path
+
+        if host:
+            if helper.check_ip_address(host):
+                path = path + '/' + str(host) + '_' + community
+            else:
+                return {'error_code': '1005',
+                        'error_message': custom_error_codes['1005'],
+                        'error_message_details': 'The host was ' + str(host)}
+
+        headers = self.authenticationClass.headers
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               headers=headers)
+
+        error_response = response_status(response, content)
+        if response['status'] == '200':
+            try:
+                snmp_data = json.loads(content)
+            except:
+                raise Exception
+            snmp_hosts = []
+            if host:
+                snmp_hosts.append({'ip_address': snmp_data['ip-address'],
+                                   'community': snmp_data['community-string']})
+            else:
+                for snmp_host in snmp_data['items']:
+                    snmp_hosts.append({'ip_address': snmp_host['ip-address'],
+                                       'community': snmp_host['community-string']})
+            return_data = {'snmp_hosts': snmp_hosts}
+            return return_data
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
+
+    def delete_snmp(self, host=None, community='public'):
+
+        '''
+        delete_snmp:
+        @args:
+        -host:  The host IP (must be in IP format)
+        -community:  The SNMP community, Default: public
+        @returns:
+        '''
+
+        path = global_snmp_path
+        path = path + '/' + str(host) + '_' + str(community)
+        headers = self.authenticationClass.headers
+        method = 'DELETE'
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               method=method,
+                                                               headers=headers)
+        error_response = response_status(response, content)
+        if response['status'] == '204':
+            return
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
+
+    def put_cli(self, command=None):
+
+        '''
+        put_cli:
+        @args:
+        -running_config: running config string
+        @returns:
+        '''
+
+        path = global_running_config_path
+
+        headers = self.authenticationClass.headers
+        headers['Content-Type'] = 'text/plain'
+        headers['Accept'] = 'text/plain'
+        method = 'PUT'
+        if command:
+            body = command
+        else:
+            body = ''
+        response, content = self.connectionClass.rest_api_call(path=path,
+                                                               method=method,
+                                                               headers=headers,
+                                                               body=body)
+
+        error_response = response_status(response, content)
+        if response['status'] == '204':
+            return
+        elif error_response:
+            return error_response
+        else:
+            raise Exception
 
 
 

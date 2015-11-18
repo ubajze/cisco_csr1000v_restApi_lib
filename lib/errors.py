@@ -6,6 +6,7 @@ custom_error_codes = {
     '1002': 'pw_type not 0 or 7',
     '1003': 'Privilege must be an integer.',
     '1004': 'Privilege not in expected range 0-15.',
+    '1005': 'Host is not in IP form.',
 }
 
 def response_status(response, content):

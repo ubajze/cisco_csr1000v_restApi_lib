@@ -53,7 +53,7 @@ class CliClass(object):
                     method_string = re.sub('\(|\)', '', method_string).strip()
                     method_find = False
                     for object_class in all_methods.keys():
-                        for method in all_methods[object_class]:
+                        for method in sorted(all_methods[object_class]):
                             if method == method_string:
                                 method_find = True
                                 method_docstring = eval(object_class.__name__ + '.' + method).__doc__
@@ -178,18 +178,18 @@ if __name__ == "__main__":
     username = None
     password = None
 
-    try:
-        '''
-        hosts = [{'host': None,
-                 'username': None,
-                 'password': None,
-                 'port': None,
-                 'protocol': None}]
-        '''
-        dataClass = DataClass()
-        commandObject = CliClass(dataClass)
+    '''
+    hosts = [{'host': None,
+             'username': None,
+             'password': None,
+             'port': None,
+             'protocol': None}]
+    '''
+    dataClass = DataClass()
+    commandObject = CliClass(dataClass)
 
-        while True:
+    while True:
+        try:
             input_var = raw_input('# ')
             if input_var != "":
                 command, arguments = commandObject.get_input_string(input_var)
@@ -207,6 +207,8 @@ if __name__ == "__main__":
                             if arguments:
                                 print "Arguments: " + ','.join(arguments)
                             send_command(device[0], device[1], command, arguments)
-    except KeyboardInterrupt:
-        sys.exit()
+        except KeyboardInterrupt:
+            sys.exit()
+        # except:
+            # pass
 
